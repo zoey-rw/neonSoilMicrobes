@@ -5,13 +5,18 @@
 #
 # for testing:
 startdate="2014-01"
-enddate="2016-07"
+enddate="2019-07"
 check.size=F
 site="CPER"
 outdir="/projectnb/talbot-lab-data/zrwerbin/NEON_16S_data_construction/raw_sequences_16S/recent/"
-type="16S"
+amplicon="16S"
 
 downloadRawSequenceData(site="CPER", startdate="2013-01", enddate="2019-01", check.size=F, outdir="/projectnb/talbot-lab-data/zrwerbin/NEON_16S_data_construction/raw_sequences_16S/recent/", amplicon = "16S")
+downloadRawSequenceData(site="HARV", startdate="2013-01", enddate="2019-01", check.size=F, outdir="/projectnb/talbot-lab-data/zrwerbin/NEON_16S_data_construction/raw_sequences_16S/recent/", amplicon = "16S")
+downloadRawSequenceData(site="BART", startdate="2013-01", enddate="2019-01", check.size=F, outdir="/projectnb/talbot-lab-data/zrwerbin/NEON_16S_data_construction/raw_sequences_16S/recent/", amplicon = "16S")
+downloadRawSequenceData(site="DSNY", startdate="2013-01", enddate="2019-01", check.size=F, outdir="/projectnb/talbot-lab-data/zrwerbin/NEON_16S_data_construction/raw_sequences_16S/recent/", amplicon = "16S")
+
+downloadRawSequenceData(site=c("OSBS","STER","DSNY"), startdate="2013-01", enddate="2019-01", check.size=F, outdir="/projectnb/talbot-lab-data/zrwerbin/NEON_16S_data_construction/raw_sequences_16S/recent/", amplicon = "16S")
 
 downloadRawSequenceData <- function(site="all", startdate="YYYY-MM", enddate="YYYY-MM", outdir="", check.size=TRUE, 
                                     amplicon = "16S", ...){
@@ -45,20 +50,20 @@ downloadRawSequenceData <- function(site="all", startdate="YYYY-MM", enddate="YY
   
   # get tar file names
   fileNms <- gsub('^.*\\/', "", u.urls)
-  cat(paste0("There are ", length(u.urls), " unique files to download.")) 
+  cat(paste0("There are ", length(u.urls), " unique files to download.\n")) 
   
-  for(i in 1:length(u.urls_16S)) { # loop through each URL
+  for(i in 1:length(u.urls)) { # loop through each URL
     #for(i in 2:3) { # for testing
     
     # search for the tar file name in the provided out-directory
     file_exists <- grepl(fileNms[i], list.files(tar_dir), fixed = TRUE)
-    if(any(file_exists)) { cat(paste0("File: ", fileNms[i], " already exists. Skipping download."))
+    if(any(file_exists)) { cat(paste0("File: ", fileNms[i], " already exists. Skipping download.\n"))
 
     } else {
       
       #### DOWNLOAD TAR FILES AND EXTRACT THE SAMPLES WE WANT ####
       utils::download.file(url=as.character(u.urls[i]), destfile = paste0(tar_dir, fileNms[i]))
-      cat(paste0("File: ", fileNms[i], " has been downloaded."))
+      cat(paste0("File: ", fileNms[i], " has been downloaded.\n"))
       
     }
         # look into compressed tar files and get the list of FASTQ file names
@@ -74,7 +79,7 @@ downloadRawSequenceData <- function(site="all", startdate="YYYY-MM", enddate="YY
           utils::untar(tarfile = paste0(tar_dir, fileNms[i]), 
                 files = files_to_extract,
                 exdir = paste0(fastq_dir))
-          cat(paste0("File: ", fileNms[i], " has been extracted."))
+          cat(paste0("File: ", fileNms[i], " has been extracted.\n"))
           
           
           #### FIX FILENAMES (i.e. to SITE_PLOT_HORIZON_CORE_DATE_DNA1_R1.fastq) ####
@@ -102,16 +107,15 @@ downloadRawSequenceData <- function(site="all", startdate="YYYY-MM", enddate="YY
           # moves nested files out of their folders, and into a new folder called "to_keep"
           cmd <- paste0("find ", fastq_dir, " -mindepth 2 -type f -exec mv -i '{}' ", fastq_dir, " ';'")
           system(cmd)
-          
-          cat("The following samples have been renamed and moved to the directory 'to_keep/':")
-          print(basename(new.names))
-          
           # now let's remove only the empty directories
           cmd <- paste0("rmdir -p ", fastq_dir, unique(dirname(files_to_extract)))
           system(cmd) # ignore the error here! (I don't know how to avoid it)
           
+          cat("The following samples have been renamed and are in the directory 'fastq/':")
+          print(basename(new.names))
+          
         } else {
-          print("No fastq files to extract.")
+          cat("No fastq files to extract.")
         } # close conditional extraction of new/wanted fastq files
     } # close loop through URLs
   } ## close function ##
