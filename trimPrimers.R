@@ -17,9 +17,9 @@ test <- TRUE
 #input path to cutadapt
 cutadapt.path <- "/share/pkg.7/cutadapt/1.18/install/bin/cutadapt"  
 
-trimPrimers(raw.seqs <- "/projectnb/talbot-lab-data/zrwerbin/NEON_16S_data_construction/raw_sequences_16S/recent/fastq/", out.dir <- "/projectnb/talbot-lab-data/zrwerbin/NEON_16S_data_construction/trimmed/", flip_rev_primer = T, test= TRUE)
+trimPrimers(raw.seqs <- "/projectnb/talbot-lab-data/zrwerbin/NEON_16S_data_construction/raw_sequences_16S/recent/fastq/", out.dir <- "/projectnb/talbot-lab-data/zrwerbin/NEON_16S_data_construction/trimmed/", flip_rev_primer = T, test= FALSE)
 
-trimPrimers <- function(raw.seqs, out.dir, flip_rev_primer = TRUE, FWD = "CCTACGGGNBGCASCAG", REV = "GTGYCAGCMGCCGCGGTAA", cutadapt.path = "/share/pkg.7/cutadapt/1.18/install/bin/cutadapt", test=FALSE){
+trimPrimers <- function(raw.seqs, out.dir, flip_rev_primer = TRUE, FWD = "CCTACGGGNBGCASCAG", REV = "GTGYCAGCMGCCGCGGTAA", cutadapt.path = "/share/pkg.7/cutadapt/1.18/install/bin/cutadapt", test=FALSE, remove.filtN = T){
 
   source("/projectnb/talbot-lab-data/zrwerbin/NEON_16S_data_construction/helperFunctions.r")
   
@@ -79,6 +79,10 @@ for(i in 1:length(fnFs)) {
                fnFs.filtN[i], fnRs.filtN[i])) # input files
 }
 
+if(remove.filtN == TRUE){
+cat("Removing temporary directory of N-filtered reads...")
+  system(paste0("rm -r ", file.path(out.dir, "filtN")))
+}
 
 cat("Primer count before trimming (for first sample):\n")
 checkPrimers(fnFs[[1]], fnRs[[1]], FWD.orients, REV.orients)
