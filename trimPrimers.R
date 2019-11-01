@@ -32,8 +32,8 @@ fnFs <- sort(list.files(raw.seqs, pattern = "_R1.fastq", full.names = TRUE))
 fnRs <- sort(list.files(raw.seqs, pattern = "_R2.fastq", full.names = TRUE))
 
 if (!is.null(test)){
-fnFs <- tail(fnFs, 10)
-fnRs <- tail(fnRs, 10)
+fnFs <- tail(fnFs, 5)
+fnRs <- tail(fnRs, 5)
 }
 
 # remove samples without forward and reverse reads 
@@ -57,10 +57,7 @@ fnFs.filtN <- file.path(out.dir, "filtN", paste0(basename(fnFs), ".gz")) # Put N
 fnRs.filtN <- file.path(out.dir, "filtN", paste0(basename(fnRs), ".gz"))
 filterAndTrim(fnFs, fnFs.filtN, fnRs, fnRs.filtN, maxN = 0, truncQ = 1, multithread = TRUE)
 
-cat("Primer count before trimming (for first sample):\n")
-checkPrimers(fnFs[[1]], fnRs[[1]], FWD.orients, REV.orients)
-
-if (!is.null(cutadapt.path)) system(paste0("export PATH=",cutadapt,":$PATH"))
+if (!is.null(cutadapt.path)) system(paste0("export PATH=",cutadapt.path,":$PATH"))
 if (system("which cutadapt") == 1) stop("Cannot find path to cutadapt. Set using the 'cutadapt.path' argument, or run from another location.")
 
 # create output file names
@@ -77,13 +74,23 @@ R2.flags <- paste("-G", REV, "-A", FWD.RC)
 # Run Cutadapt
 for(i in 1:length(fnFs)) {
   system(paste("cutadapt", R1.flags, R2.flags, "-n", 2, # -n 2 required to remove FWD and REV from reads
-               "-m 100",
+               "-m 50",
                "-o", fnFs.cut[i], "-p", fnRs.cut[i], # output files
                fnFs.filtN[i], fnRs.filtN[i])) # input files
 }
 
-cat("Primer count after trimming (for first sample):\n")
-checkPrimers(fnFs.cut[[1]], fnRs.cut[[1]])
 
+cat("Primer count before trimming (for first sample):\n")
+checkPrimers(fnFs[[1]], fnRs[[1]], FWD.orients, REV.orients)
+qaSummary.before <- qa(fnFs, type="fastq")
+
+cat("Primer count after trimming (for first sample):\n")
+checkPrimers(fnFs.cut[[1]], fnRs.cut[[1]], FWD.orients, REV.orients)
+qaSummary.after <- qa(fnFs.cut, type="fastq")
+
+qa.out <- cbind(head(qaSummary.before[["readCounts"]][,1, drop=F]), head(qaSummary.after[["readCounts"]][,1, drop=F]))
+colnames(qa.out) <- c("initialReadCount","finalReadCount")
+print(qa.out)
 }
+
 
