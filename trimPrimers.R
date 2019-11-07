@@ -4,36 +4,38 @@ rm(list=ls())
 library(dada2)
 library(ShortRead)
 library(Biostrings)
+# 
+# # Input path to sequences:
+# raw.seqs <- "/projectnb/talbot-lab-data/zrwerbin/NEON_16S_data_construction/raw_sequences_16S/recent/fastq/"
+# out.dir <- "/projectnb/talbot-lab-data/zrwerbin/NEON_16S_data_construction/trimmed/"
+# # primer sequences come from dat$mmg_soilPcrAmplification file
+# FWD <- "CCTACGGGNBGCASCAG"  
+# REV <- "GTGYCAGCMGCCGCGGTAA" # don't know how i learned this, but this the 515F FWD primer for EMP.
+# flip_rev_primer <- T
+# REV <- "GACTACNVGGGTATCTAATCC" #this is the reverse primer shared by NEON, but the above one is actually found...
+# flip_rev_primer <- F
+# test <- TRUE
+# cutadapt.path <- "/share/pkg.7/cutadapt/1.18/install/bin/cutadapt"  #input path to cutadapt
 
-# Input path to sequences:
-seq.dir <- "/projectnb/talbot-lab-data/zrwerbin/NEON_16S_data_construction/"
-raw.seqs <- "/projectnb/talbot-lab-data/zrwerbin/NEON_16S_data_construction/raw_sequences_16S/recent/fastq/"
-out.dir <- "/projectnb/talbot-lab-data/zrwerbin/NEON_16S_data_construction/trimmed/"
-flip_rev_primer <- T
-# primer sequences come from dat$mmg_soilPcrAmplification file
-FWD <- "CCTACGGGNBGCASCAG"  
-REV <- "GTGYCAGCMGCCGCGGTAA"
-test <- TRUE
-#input path to cutadapt
-cutadapt.path <- "/share/pkg.7/cutadapt/1.18/install/bin/cutadapt"  
+# example:
+# trimPrimers(raw.seqs = "/projectnb/talbot-lab-data/zrwerbin/NEON_16S_data_construction/raw_sequences_16S/recent/fastq/", out.dir = "/projectnb/talbot-lab-data/zrwerbin/NEON_16S_data_construction/trimmed/", flip_rev_primer = T, test = FALSE)
 
-trimPrimers(raw.seqs <- "/projectnb/talbot-lab-data/zrwerbin/NEON_16S_data_construction/raw_sequences_16S/recent/fastq/", out.dir <- "/projectnb/talbot-lab-data/zrwerbin/NEON_16S_data_construction/trimmed/", flip_rev_primer = T, test= FALSE)
+trimPrimers <- function(raw.seqs, out.dir, flip_rev_primer = FALSE, FWD = "CCTACGGGNBGCASCAG", REV = "GACTACNVGGGTATCTAATCC", cutadapt.path = "/share/pkg.7/cutadapt/1.18/install/bin/cutadapt", test = FALSE, remove.filtN = T){
 
-trimPrimers <- function(raw.seqs, out.dir, flip_rev_primer = TRUE, FWD = "CCTACGGGNBGCASCAG", REV = "GTGYCAGCMGCCGCGGTAA", cutadapt.path = "/share/pkg.7/cutadapt/1.18/install/bin/cutadapt", test=FALSE, remove.filtN = T){
-
+  seqRun <- list.files(raw.seqs)
+  
   source("/projectnb/talbot-lab-data/zrwerbin/NEON_16S_data_construction/helperFunctions.r")
   
 # create output directory
-#path.cut <- file.path(seq.dir, "trimmed")
 if(!dir.exists(out.dir)) dir.create(out.dir)
 
 # read in raw sequences
-fnFs <- sort(list.files(raw.seqs, pattern = "_R1.fastq", full.names = TRUE))
-fnRs <- sort(list.files(raw.seqs, pattern = "_R2.fastq", full.names = TRUE))
+fnFs <- sort(list.files(raw.seqs, pattern = "_R1.fastq", full.names = TRUE, recursive = T))
+fnRs <- sort(list.files(raw.seqs, pattern = "_R2.fastq", full.names = TRUE, recursive = T))
 
-if (!is.null(test)){
-fnFs <- tail(fnFs, 5)
-fnRs <- tail(fnRs, 5)
+if (test==TRUE){
+fnFs <- head(fnFs, 10)
+fnRs <- head(fnRs, 10)
 }
 
 # remove samples without forward and reverse reads 
@@ -55,7 +57,7 @@ REV.orients <- allOrients(REV)
 # remove any N reads (dada2 can't handle)
 fnFs.filtN <- file.path(out.dir, "filtN", paste0(basename(fnFs), ".gz")) # Put N-filtered files in filtN/ subdirectory
 fnRs.filtN <- file.path(out.dir, "filtN", paste0(basename(fnRs), ".gz"))
-filterAndTrim(fnFs, fnFs.filtN, fnRs, fnRs.filtN, maxN = 0, truncQ = 1, multithread = TRUE)
+filterAndTrim(fnFs, fnFs.filtN, fnRs, fnRs.filtN, maxN = 0, truncQ = 2, multithread = TRUE, matchIDs = TRUE)
 
 if (!is.null(cutadapt.path)) system(paste0("export PATH=",cutadapt.path,":$PATH"))
 if (system("which cutadapt") == 1) stop("Cannot find path to cutadapt. Set using the 'cutadapt.path' argument, or run from another location.")
@@ -84,17 +86,18 @@ cat("Removing temporary directory of N-filtered reads...")
   system(paste0("rm -r ", file.path(out.dir, "filtN")))
 }
 
-cat("Primer count before trimming (for first sample):\n")
-checkPrimers(fnFs[[1]], fnRs[[1]], FWD.orients, REV.orients)
+msg1 <- "Primer count before trimming (for first sample):"
+primers.before <- checkPrimers(fnFs[[1]], fnRs[[1]], FWD.orients, REV.orients)
 qaSummary.before <- qa(fnFs, type="fastq")
 
-cat("Primer count after trimming (for first sample):\n")
-checkPrimers(fnFs.cut[[1]], fnRs.cut[[1]], FWD.orients, REV.orients)
+msg2 <- "Primer count after trimming (for first sample):"
+primers.after <- checkPrimers(fnFs.cut[[1]], fnRs.cut[[1]], FWD.orients, REV.orients)
 qaSummary.after <- qa(fnFs.cut, type="fastq")
 
 qa.out <- cbind(head(qaSummary.before[["readCounts"]][,1, drop=F]), head(qaSummary.after[["readCounts"]][,1, drop=F]))
-colnames(qa.out) <- c("initialReadCount","finalReadCount")
+colnames(qa.out) <- c("withPrimersReadCount","primersTrimmedReadCount")
 print(qa.out)
-}
 
+return(list(msg1, primers.before, msg2, primers.after, qa.out))
+}
 

@@ -4,7 +4,7 @@
 # Will not work for legacy data.
 #
 # for testing:
-startdate="2014-01"
+startdate="2016-01"
 enddate="2019-07"
 check.size=F
 site="CPER"
@@ -14,9 +14,8 @@ amplicon="16S"
 downloadRawSequenceData(site="CPER", startdate="2013-01", enddate="2019-01", check.size=F, outdir="/projectnb/talbot-lab-data/zrwerbin/NEON_16S_data_construction/raw_sequences_16S/recent/", amplicon = "16S")
 downloadRawSequenceData(site="HARV", startdate="2013-01", enddate="2019-01", check.size=F, outdir="/projectnb/talbot-lab-data/zrwerbin/NEON_16S_data_construction/raw_sequences_16S/recent/", amplicon = "16S")
 downloadRawSequenceData(site="BART", startdate="2013-01", enddate="2019-01", check.size=F, outdir="/projectnb/talbot-lab-data/zrwerbin/NEON_16S_data_construction/raw_sequences_16S/recent/", amplicon = "16S")
-downloadRawSequenceData(site="DSNY", startdate="2013-01", enddate="2019-01", check.size=F, outdir="/projectnb/talbot-lab-data/zrwerbin/NEON_16S_data_construction/raw_sequences_16S/recent/", amplicon = "16S")
 
-downloadRawSequenceData(site=c("OSBS","STER","DSNY"), startdate="2013-01", enddate="2019-01", check.size=F, outdir="/projectnb/talbot-lab-data/zrwerbin/NEON_16S_data_construction/raw_sequences_16S/recent/", amplicon = "16S")
+downloadRawSequenceData(site="all", startdate="2013-01", enddate="2019-01", check.size=F, outdir="/projectnb/talbot-lab-data/zrwerbin/NEON_16S_data_construction/raw_sequences_16S/recent/", amplicon = "16S")
 
 downloadRawSequenceData <- function(site="all", startdate="YYYY-MM", enddate="YYYY-MM", outdir="", check.size=TRUE, 
                                     amplicon = "16S", ...){
@@ -105,7 +104,7 @@ downloadRawSequenceData <- function(site="all", startdate="YYYY-MM", enddate="YY
           #### CLEAN UP TIME! ####  
           
           # moves nested files out of their folders, and into a new folder called "to_keep"
-          cmd <- paste0("find ", fastq_dir, " -mindepth 2 -type f -exec mv -i '{}' ", fastq_dir, " ';'")
+          cmd <- paste0("find ", fastq_dir, " -mindepth 2 -type f -exec mv -i -f '{}' ", fastq_dir, " ';'")
           system(cmd)
           # now let's remove only the empty directories
           cmd <- paste0("rmdir -p ", fastq_dir, unique(dirname(files_to_extract)))
