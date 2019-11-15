@@ -1,0 +1,38 @@
+#!/bin/bash -l
+# qsub for trimming 16S primers.
+########################################
+####      commands for scc qsub     ####
+########################################
+# Specfiy hard time limit for the job.
+#$ -l h_rt=120:00:00
+#
+# Use N processors on a single machine. 
+#$ -pe omp 16
+#
+# Give the job a name
+#$ -N trimPrimers_ITS
+#
+# Request buy-in nodes
+#$ -l buyin
+#
+# Merge stderr into the stdout file, to reduce clutter
+#$ -j y
+#
+# Have the system send email when the job is aborted or ended
+#$ -m ae
+#
+# Inherit current environment
+#$ -V 
+#
+########################################
+#### commands to run R script ####
+########################################
+#
+# cd into directory, for safety purposes
+cd /projectnb/talbot-lab-data/zrwerbin/NEON_16S_ITS_data_construction/
+#
+# in the directory specified above, invoke this function:
+Rscript /projectnb/talbot-lab-data/zrwerbin/NEON_16S_ITS_data_construction/02_runTrimPrimers_ITS.r
+#
+#End of commands.
+#

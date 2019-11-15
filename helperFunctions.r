@@ -28,6 +28,49 @@ rbind(FWD.ForwardReads = sapply(FWD.orients, primerHits, fn = fwd),
 )
 }
 
+# run dada core inference algorithm, from dada2 big data tutorial
+runDada2 <- function(filtpath, out.dir, ...){
+  tic()
+  # File parsing
+  filtFs <- list.files(filtpath, pattern="_F_filt.fastq.gz", full.names = TRUE)
+  filtRs <- list.files(filtpath, pattern="_R_filt.fastq.gz", full.names = TRUE)
+  
+  filtFs <- filtFs[sapply(strsplit(basename(filtFs), "_[RF]"), `[`, 1) %in% sapply(strsplit(basename(filtRs), "_[RF]"), `[`, 1) ]
+  filtRs <- filtRs[sapply(strsplit(basename(filtRs), "_[RF]"), `[`, 1) %in% sapply(strsplit(basename(filtFs), "_[RF]"), `[`, 1) ]
+  sample.names <- sapply(strsplit(basename(filtFs), "_[RF]"), `[`, 1) # Assumes filename = samplename_XXX.fastq.gz
+  sample.namesR <- sapply(strsplit(basename(filtRs), "_[RF]"), `[`, 1) # Assumes filename = samplename_XXX.fastq.gz
+  
+  if(!identical(sample.names, sample.namesR)) stop("Forward and reverse files do not match.")
+  names(filtFs) <- sample.names
+  names(filtRs) <- sample.names
+  set.seed(100)
+  # Learn forward error rates
+  errF <- learnErrors(filtFs, nbases=1e6, multithread=TRUE)
+  # Learn reverse error rates
+  errR <- learnErrors(filtRs, nbases=1e6, multithread=TRUE)
+  # Sample inference and merger of paired-end reads
+  mergers <- vector("list", length(sample.names))
+  names(mergers) <- sample.names
+  for(i in 1:length(sample.names)) {
+    sam <- sample.names[[i]]
+    cat("Processing:", sam, "\n")
+    derepF <- derepFastq(filtFs[[sam]])
+    ddF <- dada(derepF, err=errF, multithread=TRUE)
+    derepR <- derepFastq(filtRs[[sam]])
+    ddR <- dada(derepR, err=errR, multithread=TRUE)
+    merger <- mergePairs(ddF, derepF, ddR, derepR)
+    mergers[[sam]] <- merger
+    cat(paste("Exact sequence variants inferred for sample:",  sam,". \n"))
+  }
+  rm(derepF); rm(derepR)
+  # Construct sequence table and remove chimeras
+  seqtab <- makeSequenceTable(mergers)
+  saveRDS(seqtab, out.dir)
+  cat(paste("Saving sequence table at:", out.dir,". \n"))
+  toc()
+}
+
+
 
 # tic/toc functions from Colin Averill:
 #' Two clock functions.
@@ -38,19 +81,26 @@ toc <- function() print(Sys.time()-timer)
 
 
 
+
+#normalize otu table. function from Colin Averill:
+pro.function <- function(otu){
+  for(i in 1:ncol(otu)){
+    otu[,i] <- otu[,i] / sum(otu[,i])
+  }
+  return(otu)
+}
+
 #' Set truncation length
 #' 
 #' Decides on truncation length for trimmed reads based on quality score means. Default cutoff is a score of 30. 
 #' Warns you if the beginning (first 10) bases are low-quality, but returns the first low-quality base after the 10th base.
 #' If no bases are below score, returns the last base.
 #' 
-#' @param fl input files (prints suggested length for each; if used in script, could take the first input, or the lowest)
-#' @param qscore default = 30.
-#' @param n default = 5e+05 don't know exactly why this matters, but it's part of how 'qa' is called within the dada2 scripts...
+#'  fl : input files (prints suggested length for each; if used in script, could take the first input, or the lowest)
+#'  qscore : default = 30.
+#'  n : default = 5e+05 don't know exactly why this matters, but it's part of how 'qa' is called within the dada2 scripts...
 #' 
-#' @export
 #' 
-#' @examples
 get_truncation_length <-function (fl, qscore = 30, n = 5e+05, quiet = TRUE){
   trunc_lengths <- data.frame(file = character(0), early_lowqual = numeric(0),
                               trunc_length = numeric(0))

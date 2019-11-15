@@ -1,0 +1,42 @@
+#!/bin/bash -l
+# qsub for running dada2 on all NEON 16S samples.
+########################################
+####      commands for scc qsub     ####
+########################################
+#Specfiy hard time limit for the job.
+#$ -l h_rt=120:00:00
+#
+#Use N processors on a single machine. 
+#$ -pe omp 16
+#
+#Give the job a name
+#$ -N runAssignTaxonomy
+#
+# Request buy-in nodes
+#$ -l buyin
+#
+# Merge stderr into the stdout file, to reduce clutter
+#$ -j y
+#
+# Have the system send mail when the job begins and when the job is aborted or ended
+#$ -m ae
+#
+# Inherit the current environment
+#$ -V 
+#
+# end of qsub arguments
+#
+########################################
+#### begin commands to run R script ####
+########################################
+#
+#
+# cd into directory, for safety purposes
+cd /projectnb/talbot-lab-data/zrwerbin/NEON_16S_ITS_data_construction/
+#
+# in the directory specified above, invoke this function:
+Rscript /projectnb/talbot-lab-data/zrwerbin/NEON_16S_ITS_data_construction/04_runAssignTaxonomy_16S.r
+#
+#
+#End of commands.
+#

@@ -1,0 +1,3 @@
+# Don't track "data" or "logfiles" folder
+data/
+logfiles/
