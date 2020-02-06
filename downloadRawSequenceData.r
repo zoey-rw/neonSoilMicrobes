@@ -1,27 +1,31 @@
-# Function to download 16S and ITS raw sequencing data from NEON soil samples. 
-#
-# Initially written by Lee Stanish, NEON; further adapted by Zoey Werbin
-# Will not work for legacy data.
-#
-#downloadRawSequenceData(out.dir = "/projectnb/talbot-lab-data/zrwerbin/NEON_16S_ITS_data_construction/testing/raw_seqs/ITS", startdate="2016-01", enddate="2016-04")
-
-site = c("CPER","DSNY","HARV","OSBS","STER"); 
-startdate="2015-06"; 
-enddate="2019-06"; 
-out.dir = "/projectnb/talbot-lab-data/zrwerbin/NEON_16S_ITS_data_construction/testing/raw_seqs/ITS"; 
-tar_dir = "/projectnb/talbot-lab-data/zrwerbin/NEON_16S_ITS_data_construction/data/ITS/rawSeqs/recent/tar/";  
-amplicon="ITS"; fastq_dir = NULL; check.size=F; 
-
-site = c("CPER","DSNY","HARV","OSBS","STER"); 
-startdate="2015-06"; 
-enddate="2019-06"; 
-out.dir = "/projectnb/talbot-lab-data/zrwerbin/NEON_16S_ITS_data_construction/testing/raw_seqs/16S"; 
-tar_dir = "/projectnb/talbot-lab-data/zrwerbin/NEON_16S_ITS_data_construction/data/16S/rawSeqs/recent/tar/"; 
-amplicon="16S"; check.size=F; fastq_dir = NULL;  
-
-downloadRawSequenceData(site = "CPER", amplicon = "16S", startdate="2016-06", enddate="2016-07", check.size=F)
-
-downloadRawSequenceData <- function(site = "HARV", startdate="YYYY-MM", enddate="YYYY-MM", check.size=F, amplicon="ITS", out.dir= NULL, fastq_dir = NULL, tar_dir = NULL, specific.runs=NULL) {
+#' downloadRawSequenceData.r : Download raw FASTQ files for NEON microbial 16S and ITS amplicon sequencing data from soils.
+#' Initially written by Lee Stanish, NEON; further adapted by Zoey Werbin
+#' Will not work for legacy (2013-2014) data.
+#'
+#' @param site  # site or vector of sites of interest (or "all")
+#' @param startdate # soils collected after this date; format = "YYYY-MM"
+#' @param enddate # soils collected until this date; format = "YYYY-MM"
+#' @param amplicon # "ITS" or "16S" 
+#' @param out.dir # directory in which to create "tar" and "fastq" output directories
+#' @param fastq_dir # directory in which to put fastq files, separated by sequencing run
+#' @param tar_dir # directory in which to download tar files, separated by sequencing run. Important to specify this if you've downloaded these files before - each can be up to 3 GB, and there are dozens.
+#' @param specific.runs # can be character vector such as c("C3CNF") or numeric vector such as c(5:8); numeric vector only makes sense if you're trying to re-run a function that previously threw an error.
+#' @param check.size   # check.size parameter passed to neonUtilities::loadByProduct. only checks size of metadata loaded into workspace, not actual .tar.gz or FASTQ data
+#' @export
+#'
+#' @examples downloadRawSequenceData(site = "CPER", amplicon = "16S", startdate="2016-06", enddate="2016-07", check.size=F)
+#' 
+downloadRawSequenceData <- function(site = "HARV", startdate="YYYY-MM", enddate="YYYY-MM", amplicon="ITS", out.dir= NULL, fastq_dir = NULL, tar_dir = NULL, specific.runs=NULL, check.size=F) {
+  
+  # # For testing
+  # site = c("CPER","DSNY","HARV","OSBS","STER"); 
+  # startdate="2015-06"; 
+  # enddate="2019-06"; 
+  # out.dir = "/projectnb/talbot-lab-data/zrwerbin/NEON_16S_ITS_data_construction/testing/raw_seqs/16S"; 
+  # tar_dir = "/projectnb/talbot-lab-data/zrwerbin/NEON_16S_ITS_data_construction/data/16S/rawSeqs/recent/tar/"; 
+  # check.size=F; fastq_dir = NULL;  
+  # amplicon="16S"; 
+  # amplicon="ITS"; 
   
   source("helperFunctions.r")
   
@@ -164,4 +168,5 @@ downloadRawSequenceData <- function(site = "HARV", startdate="YYYY-MM", enddate=
     # system(paste0("rm ", fastq.out.dir, "/NA"))
   }
   cat("\n\nFile download complete.")
+  return(new.names)
 }

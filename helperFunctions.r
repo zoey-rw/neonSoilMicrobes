@@ -1,4 +1,8 @@
 # helper functions
+if (!require(dada2)) stop("Please install dada2 according to the directions at: https://benjjneb.github.io/dada2/dada-installation.html")
+require(ShortRead)
+require(Biostrings)
+require(RCurl)
 
 
 # from the dada2 tutorial
@@ -27,49 +31,6 @@ rbind(FWD.ForwardReads = sapply(FWD.orients, primerHits, fn = fwd),
       REV.ReverseReads = sapply(REV.orients, primerHits, fn = rev))
 )
 }
-
-# run dada core inference algorithm, from dada2 big data tutorial
-runDada2 <- function(filtpath, out.dir, ...){
-  tic()
-  # File parsing
-  filtFs <- list.files(filtpath, pattern="_F_filt.fastq.gz", full.names = TRUE)
-  filtRs <- list.files(filtpath, pattern="_R_filt.fastq.gz", full.names = TRUE)
-  
-  filtFs <- filtFs[sapply(strsplit(basename(filtFs), "_[RF]"), `[`, 1) %in% sapply(strsplit(basename(filtRs), "_[RF]"), `[`, 1) ]
-  filtRs <- filtRs[sapply(strsplit(basename(filtRs), "_[RF]"), `[`, 1) %in% sapply(strsplit(basename(filtFs), "_[RF]"), `[`, 1) ]
-  sample.names <- sapply(strsplit(basename(filtFs), "_[RF]"), `[`, 1) # Assumes filename = samplename_XXX.fastq.gz
-  sample.namesR <- sapply(strsplit(basename(filtRs), "_[RF]"), `[`, 1) # Assumes filename = samplename_XXX.fastq.gz
-  
-  if(!identical(sample.names, sample.namesR)) stop("Forward and reverse files do not match.")
-  names(filtFs) <- sample.names
-  names(filtRs) <- sample.names
-  set.seed(100)
-  # Learn forward error rates
-  errF <- learnErrors(filtFs, nbases=1e6, multithread=TRUE)
-  # Learn reverse error rates
-  errR <- learnErrors(filtRs, nbases=1e6, multithread=TRUE)
-  # Sample inference and merger of paired-end reads
-  mergers <- vector("list", length(sample.names))
-  names(mergers) <- sample.names
-  for(i in 1:length(sample.names)) {
-    sam <- sample.names[[i]]
-    cat("Processing:", sam, "\n")
-    derepF <- derepFastq(filtFs[[sam]])
-    ddF <- dada(derepF, err=errF, multithread=TRUE)
-    derepR <- derepFastq(filtRs[[sam]])
-    ddR <- dada(derepR, err=errR, multithread=TRUE)
-    merger <- mergePairs(ddF, derepF, ddR, derepR)
-    mergers[[sam]] <- merger
-    cat(paste("Exact sequence variants inferred for sample:",  sam,". \n"))
-  }
-  rm(derepF); rm(derepR)
-  # Construct sequence table and remove chimeras
-  seqtab <- makeSequenceTable(mergers)
-  saveRDS(seqtab, out.dir)
-  cat(paste("Saving sequence table at:", out.dir,". \n"))
-  toc()
-}
-
 
 
 # tic/toc functions from Colin Averill:
@@ -132,3 +93,46 @@ get_truncation_length <-function (fl, qscore = 30, n = 5e+05, quiet = TRUE){
   } # end loop
   return(trunc_lengths$trunc_length)  
 } # end function
+
+
+checkPrimers.wide <- function(fwd, rev, FWD.orients, REV.orients){
+    df <-  rbind(FWD.ForwardReads = sapply(FWD.orients, primerHits, fn = fwd), 
+          FWD.ReverseReads = sapply(FWD.orients, primerHits, fn = rev), 
+          REV.ForwardReads = sapply(REV.orients, primerHits, fn = fwd), 
+          REV.ReverseReads = sapply(REV.orients, primerHits, fn = rev))
+    df.melted <- reshape2::melt(df)
+    df.melted$cat <- paste(df.melted$Var1, df.melted$Var2, sep="-")
+    df.qa <- as.data.frame(t(df.melted[,c(3)]))
+    names(df.qa) <- t(df.melted[,c(4)])
+    rownames(df.qa) <- gsub("_R1", "", basename(fwd))
+    return(df.qa)
+}
+
+
+## "tree" command by JennyBC
+myfile <- RCurl::getURL("https://gist.githubusercontent.com/jennybc/2bf1dbe6eb1f261dfe60/raw/c53fba8a861f82f90d895458e941a1056c8118f5/twee.R", ssl.verifypeer=F)
+eval(parse(text = myfile))
+
+
+
+# Create data directory
+create_data_directory <- function(path = ".", amplicon = c("ITS", "16S"), ...) {
+  
+  if (length(amplicon) == 1) {
+    cmd <- paste0("mkdir -p data/{filt_seqs/",amplicon,",raw_seqs/",amplicon,",trimmed_seqs/",amplicon,",seq_tables/",amplicon,",output_files/",amplicon,"}")
+  } else {
+    cmd <- "mkdir -p data/{filt_seqs/{ITS,16S},raw_seqs/{ITS,16S},trimmed_seqs/{ITS,16S},seq_tables/{ITS,16S},output_files/{ITS,16S}}"
+  }
+  system(cmd)
+  twee("data/", level = 2)
+}
+
+
+
+rbind.named.dfs <- function(df.list){ # solution from https://stackoverflow.com/questions/15162197/combine-rbind-data-frames-and-create-column-with-name-of-original-data-frames
+  dfs <- df.list[sapply(df.list, function(x) !is.null(dim(x)))]
+  all.out <- cbind.data.frame(do.call(rbind,dfs), 
+                              seqRun = rep(names(dfs), vapply(dfs, nrow, numeric(1))))
+  return(all.out)
+}
+
