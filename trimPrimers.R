@@ -1,16 +1,16 @@
 # trim primers using cutadapt and the dada2 tutorial instructions.
 # 
 # # Input path to sequences:
-# raw.seqs <- "/projectnb/talbot-lab-data/zrwerbin/NEON_16S_data_construction/raw_sequences_16S/recent/fastq/"
-# out.dir <- "/projectnb/talbot-lab-data/zrwerbin/NEON_16S_data_construction/trimmed/"
-# # primer sequences come from dat$mmg_soilPcrAmplification file
-# FWD <- "CCTACGGGNBGCASCAG"  
-# REV <- "GTGYCAGCMGCCGCGGTAA" # don't know how i learned this, but this the 515F FWD primer for EMP.
-# flip_rev_primer <- T
-# REV <- "GACTACNVGGGTATCTAATCC" #this is the reverse primer shared by NEON, but the above one is actually found...
-# flip_rev_primer <- F
-# test <- TRUE
-# cutadapt.path <- "/share/pkg.7/cutadapt/1.18/install/bin/cutadapt"  #input path to cutadapt
+raw.seqs <- "/projectnb/talbot-lab-data/zrwerbin/NEON_16S_data_construction/raw_sequences_16S/recent/fastq/"
+out.dir <- "/projectnb/talbot-lab-data/zrwerbin/NEON_16S_data_construction/trimmed/"
+# primer sequences come from dat$mmg_soilPcrAmplification file
+FWD <- "CCTACGGGNBGCASCAG"
+REV <- "GTGYCAGCMGCCGCGGTAA" # don't know how i learned this, but this the 515F FWD primer for EMP.
+flip_rev_primer <- T
+REV <- "GACTACNVGGGTATCTAATCC" #this is the reverse primer shared by NEON, but the above one is actually found...
+flip_rev_primer <- F
+test <- TRUE
+cutadapt.path <- "/share/pkg.7/cutadapt/1.18/install/bin/cutadapt"  #input path to cutadapt
 
 # example:
 # trimPrimers(raw.seqs = "/projectnb/talbot-lab-data/zrwerbin/NEON_16S_data_construction/raw_sequences_16S/recent/fastq/", out.dir = "/projectnb/talbot-lab-data/zrwerbin/NEON_16S_data_construction/trimmed/", flip_rev_primer = T, test = FALSE)
@@ -129,3 +129,22 @@ trimPrimers <- function(raw.seq.dir, out.dir,  samples = NULL, FWD = "CCTACGGGNB
   return(qa.out)
 }
 
+
+FWD <- "CCTACGGGNBGCASCA"
+REV <- "GACTACNVGGGTATCTAATCC"
+FWD.orients <- allOrients(FWD)
+REV.orients <- allOrients(REV)
+rbind(FWD.ForwardReads = sapply(FWD.orients, primerHits, fn = fnFs[[1]]), 
+      FWD.ReverseReads = sapply(FWD.orients, primerHits, fn = fnRs[[1]]), 
+      REV.ForwardReads = sapply(REV.orients, primerHits, fn = fnFs[[1]]), 
+      REV.ReverseReads = sapply(REV.orients, primerHits, fn = fnRs[[1]]))
+
+
+FWD <- "GTGYCAGCMGCCGCGGTAA" # EMP FWD primer- NOT NEON
+REV <- "GGACTACNVGGGTWTCTAAT" # EMP REV primer - NOT NEON
+FWD.orients <- allOrients(FWD)
+REV.orients <- allOrients(REV)
+rbind(FWD.ForwardReads = sapply(FWD.orients, primerHits, fn = fnFs[[1]]), 
+      FWD.ReverseReads = sapply(FWD.orients, primerHits, fn = fnRs[[1]]), 
+      REV.ForwardReads = sapply(REV.orients, primerHits, fn = fnFs[[1]]), 
+      REV.ReverseReads = sapply(REV.orients, primerHits, fn = fnRs[[1]]))

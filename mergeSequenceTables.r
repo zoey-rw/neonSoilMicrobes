@@ -35,9 +35,9 @@ cat("\nRemoving chimeras...")
 seqtab <- st.all
 seqtab.nochim <- removeBimeraDenovo(st.all, method=method, multithread=multithread, verbose=TRUE)
 toc()
-cat(paste0("\nPercent of chimeric reads:", sum(seqtab.nochim)/sum(st.all)))
+cat(paste0("\nPercent of non-chimeric reads:", sum(seqtab.nochim)/sum(st.all)))
 saveRDS(seqtab.nochim, output.path)
-
+cat(paste0("\nMerged ESV table saved to: ",output.path))
 return(seqtab.nochim)
 }
 
