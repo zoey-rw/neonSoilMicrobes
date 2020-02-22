@@ -1,6 +1,11 @@
-source("helperFunctions.r")
 
 source("/projectnb/talbot-lab-data/zrwerbin/NEON_16S_ITS_data_construction/helperFunctions.r")
+source("/projectnb/talbot-lab-data/zrwerbin/NEON_16S_ITS_data_construction/trimPrimers.R")
+
+library(dada2)
+library(ShortRead)
+library(Biostrings)
+source("/projectnb/talbot-lab-data/zrwerbin/NEFI_microbe/paths.r")
 source("dada2_fwd.reads.R")
 source("trimPrimers.R")
 
@@ -9,9 +14,7 @@ library(doParallel)
 cores=detectCores()
 registerDoParallel(cores)
 
-
-
-
+amplicon <- "ITS"
 
 
 
@@ -34,29 +37,42 @@ for (s in 7:length(seqRuns)) {
   toc()
 }
 
+# COMBINE ESV TABLES FROM EACH RUN, remove chimeras.
+#load tables and merge, set output path.----
+seq.dir <- "/projectnb/talbot-lab-data/zrwerbin/NEON_16S_ITS_data_construction/data/seq_tables/ITS/"
+seqRuns <- list.files(seq.dir, full.names = T)
+#seqtab.nochim <- mergeRemoveChimeras(seqRuns = seqRuns, output.path = "data/output_files/ITS/mergedOtuTable.rds")
+seqtab.nochim <- readRDS("data/output_files/ITS/mergedOtuTable.rds")
+
+# ASSIGN TAXONOMY
+
+tic()
+unite_path     <- '/projectnb/talbot-lab-data/zrwerbin/NEON_16S_ITS_data_construction/data_old/sh_general_release_dynamic_01.12.2017.fasta'
+to_assign <- colnames(seqtab.nochim)
+tax.out <- dada2::assignTaxonomy(to_assign, unite_path, verbose = TRUE, multithread = T)
+toc()
+saveRDS(tax.out, "data/output_files/ITS/taxTable_legacy_fwdOnly.rds")
+cat('Taxonomy output saved.\n')
 
 
 
-
-ps_ITS <- readRDS("/projectnb/talbot-lab-data/zrwerbin/NEON_16S_ITS_data_construction/data/output_files/ITS/ps_ITS.rds")
-fg_ITS <- readRDS("/projectnb/talbot-lab-data/zrwerbin/NEON_16S_ITS_data_construction/data/output_files/ITS/fg_abun.rds")
 abun_ITS <- readRDS("/projectnb/talbot-lab-data/zrwerbin/NEON_16S_ITS_data_construction/data/output_files/ITS/ps_groupAbundances_ITS.rds")
 
 
 plot.list <- list()
 for (group in c("Ectomycorrhizal","Arbuscular","Saprotroph","Pathogen")){
-  samp.df <- sample_data(abun_ITS$phylum$phyloseq)
+  samp.df <- sample_data(abun_ITS$ps_ITS)
   samp.df$asDate <- as.Date(samp.df$dates, "%Y%m%d")
- # samp.df <- samp.df[!grepl("2017", samp.df$dateID),]
-  y <- fg_ITS$rel.abundances[,group]
- # y <- fg_ITS$rel.abundances[,group][which(!grepl("2017", samp.df$dateID))]
+  y <- abun_ITS[[group]]$rel.abundances[,group]
   df <- cbind.data.frame(asDate = samp.df$asDate,
                          siteID = samp.df$siteID,
                          horizon = samp.df$horizon,
                          y = y)
+  df <- df[df$asDate < as.Date("20170101", "%Y%m%d"),]
   plot.list[[group]] <- ggplot(df, aes(x = asDate, y = y)) + 
     geom_point(aes(color = siteID)) +
-    geom_smooth(aes(color = siteID)) + ggtitle(group)
+    geom_smooth(aes(color = siteID), span = .75) + ggtitle(group) 
 }
+gridExtra::grid.arrange(plot.list[[1]], plot.list[[2]], plot.list[[3]], plot.list[[4]])
 
 

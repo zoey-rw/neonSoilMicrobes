@@ -129,10 +129,29 @@ create_data_directory <- function(path = ".", amplicon = c("ITS", "16S"), ...) {
 
 
 
-rbind.named.dfs <- function(df.list){ # solution from https://stackoverflow.com/questions/15162197/combine-rbind-data-frames-and-create-column-with-name-of-original-data-frames
+rbind.named.dfs <- function(df.list){ 
+  # solution from https://stackoverflow.com/questions/15162197/combine-rbind-data-frames-and-create-column-with-name-of-original-data-frames
   dfs <- df.list[sapply(df.list, function(x) !is.null(dim(x)))]
   all.out <- cbind.data.frame(do.call(rbind,dfs), 
                               seqRun = rep(names(dfs), vapply(dfs, nrow, numeric(1))))
   return(all.out)
 }
 
+
+# create sample information data.frame from NEON sample names
+parseNEONsampleIDs <- function(sampleID){
+df <- data.frame(siteID = substr(sampleID, 1, 4), sampleID = sampleID, stringsAsFactors = F) %>% 
+  mutate(sample = sapply(strsplit(sampleID, "-GEN|-gen"),  "[[" , 1)) %>% 
+  mutate(sampleID = sapply(strsplit(sampleID, "-gen.fastq"),  "[[" , 1)) %>% 
+  mutate(dates = sapply(strsplit(sample, "-"), function(x) x[grep("[2]\\d\\d\\d\\d\\d\\d\\d", x)])) %>% 
+  mutate(dates = ifelse(dates == "21040514", "20140514", dates)) %>% 
+  mutate(asDate = as.Date(dates, "%Y%m%d")) %>% 
+  mutate(dateID = substr(as.character(dates), 1, 6)) %>% 
+  mutate(plotID = substr(sample, 1, 8)) %>% 
+  mutate(site_date = substr(sample, 1, 8)) %>% 
+  mutate(horizon = ifelse(grepl("-M-", sample), "M", "O")) %>% 
+  mutate(without_horizon = gsub("-[M|O]-", "-", sample)) %>% 
+  mutate(plot_date = paste0(plotID, "-", dateID)) %>% 
+  as.data.frame()
+return(df)
+}

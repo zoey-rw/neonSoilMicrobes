@@ -40,8 +40,8 @@ prevdf <- data.frame(prevalence = prevdf/nsamples(glom),
                     tax_table(glom)[,tax_rank])
 prevdf <- merge(prevdf, N.SVs, by.x = colnames(prevdf)[3], by.y  = "Var1", all.x=T)
 
-out <- list(out_abun, out_rel, seq_total, prevdf, ps)
-names(out) <- c("abundances","rel.abundances","seq.total","prevalence","phyloseq")
+out <- list(out_abun, out_rel, seq_total, prevdf)
+names(out) <- c("abundances","rel.abundances","seq.total","prevalence")
 out.list[[r]] <- out
 }
 names(out.list) <- tax_rank_list

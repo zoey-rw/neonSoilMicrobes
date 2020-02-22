@@ -106,6 +106,9 @@ saveRDS(out, tax_output_path)
 
 
 # combine OTU and TAX into phyloseq object in make_ps_16S.r
+source("/projectnb/talbot-lab-data/zrwerbin/NEON_16S_ITS_data_construction/createTaxFunction.r")
+source("/projectnb/talbot-lab-data/zrwerbin/NEON_16S_ITS_data_construction/binTaxGroups.r")
+source("/projectnb/talbot-lab-data/zrwerbin/NEON_16S_ITS_data_construction/addBacterialFunction.r")
 
 # read in phyloseq, add function
 ps_16S <- readRDS("/projectnb/talbot-lab-data/zrwerbin/NEON_16S_ITS_data_construction/data/output_files/16S/ps_16S.rds")
@@ -116,18 +119,32 @@ rownames(tax_with_function) <- taxa_names(ps_16S)
 tax_table(ps_16S) <- as.matrix(tax_with_function)
 
 abun <- get_tax_level_abun(ps_16S, tax_rank_list = rank_names(ps_16S)[c(2:6,8:20)])
+out <- c(ps_16S, abun)
+names(out) <- c("ps_16S",names(abun))
 
-saveRDS(abun, "/projectnb/talbot-lab-data/zrwerbin/NEON_16S_ITS_data_construction/data/output_files/16S/groupAbundancesFeb20_16S.rds")
+saveRDS(abun, "/projectnb/talbot-lab-data/zrwerbin/NEON_16S_ITS_data_construction/data/output_files/16S/groupAbundances.rds")
 
-plot.list <- list()
-for (group in names(abun)[6:18]){
-  df <- cbind.data.frame(asDate = sample_data(ps_16S)$asDate,
-                         siteID = sample_data(ps_16S)$siteID,
-                         horizon = sample_data(ps_16S)$horizon,
-                         y = abun[[group]]$rel.abundances[,group])
-p[[group]] <- ggplot(df, aes(x = asDate, y = y)) + 
-  geom_point(aes(color = siteID)) +
-  geom_smooth(aes(color = siteID))
-}
+library(phyloseq)
+abun <- readRDS("/projectnb/talbot-lab-data/zrwerbin/NEON_16S_ITS_data_construction/data/output_files/16S/groupAbundances.rds")
 
+rel_abun <- sapply(abun, "[[", 2)
+rel_abun$df <- sample_data(abun$phylum$phyloseq)
+saveRDS(rel_abun, "/projectnb/talbot-lab-data/zrwerbin/NEON_16S_ITS_data_construction/data/output_files/16S/relAbundances.rds")
+rel_abun <- readRDS("/projectnb/talbot-lab-data/zrwerbin/NEON_16S_ITS_data_construction/data/output_files/16S/relAbundances.rds")
+rel_abun$df <- rel_abun$df[!grepl("2017", rownames(rel_abun$df)),]
+
+p <- list()
+for (group in names(rel_abun)[6:18]){
+  rel_abun[[group]] <- rel_abun[[group]][rownames(rel_abun[[group]]) %in% rownames(rel_abun$df),]
   
+  df <- cbind.data.frame(asDate = rel_abun$df$asDate,
+                         siteID = rel_abun$df$siteID,
+                         horizon = rel_abun$df$horizon,
+                         y = rel_abun[[group]][,group])
+  p[[group]] <- ggplot(df, aes(x = asDate, y = y)) + 
+    geom_point(aes(color = siteID)) +
+    geom_smooth(aes(color = siteID), span = 0.5) + ggtitle(group)
+}
+gridExtra::grid.arrange(p[[1]], p[[2]], p[[3]], p[[4]], p[[5]], p[[6]])
+gridExtra::grid.arrange(p[[7]], p[[8]], p[[9]], p[[10]], p[[11]], p[[12]])
+

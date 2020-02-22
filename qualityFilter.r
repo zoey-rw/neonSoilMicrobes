@@ -43,6 +43,7 @@ qualityFilter <- function(trimmed.seq.dir, out.dir, amplicon = "16S", fwdEE=5, r
   if (rev.trunc.length < 200) rev.trunc.length <- 200
   if (fwd.trunc.length < 245) fwd.trunc.length <- 245
   
+  cat(paste0("Fwd truncation length: ", fwd.trunc.length, "\nRev truncation length: ", rev.trunc.length))
   out <- filterAndTrim(fnFs, filtFs, fnRs, filtRs, truncLen=c(fwd.trunc.length, rev.trunc.length),
                        maxN=0, maxEE=c(fwdEE,revEE), truncQ=2, rm.phix=TRUE, matchIDs = TRUE,
                        compress=TRUE,
