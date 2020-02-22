@@ -1,4 +1,5 @@
 # Don't track "data" or "logfiles" folder
 data/
 logfiles/
-scripts/
+scripts_older/
+scripts/old/
