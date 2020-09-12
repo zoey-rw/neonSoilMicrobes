@@ -117,7 +117,7 @@ eval(parse(text = myfile))
 
 # Create data directory
 create_data_directory <- function(path = ".", amplicon = c("ITS", "16S"), ...) {
-  
+  # twee vignette here: https://gist.github.com/jennybc/2bf1dbe6eb1f261dfe60
   if (length(amplicon) == 1) {
     cmd <- paste0("mkdir -p data/{filt_seqs/",amplicon,",raw_seqs/",amplicon,",trimmed_seqs/",amplicon,",seq_tables/",amplicon,",output_files/",amplicon,"}")
   } else {

@@ -1,7 +1,11 @@
 # takes the taxonomy and ESV tables from dada2, creates a phyloseq object, adds functional groups,
 # and calculates the abundances/prevalence at every level.
+source("helperFunctions.r")
+source("binTaxGroups.r")
+source("../NEFI_microbe/NEFI_functions/fg_assign_parallel.r")
 library(phyloseq)
 library(data.table)
+library(dplyr)
 
 # set output paths
 otu_tax_output.path <- "/projectnb/talbot-lab-data/zrwerbin/NEON_16S_ITS_data_construction/data/output_files/ITS/master_otu_tax.rds"
@@ -18,6 +22,7 @@ tax_ITS_legacy <- readRDS("/projectnb/talbot-lab-data/zrwerbin/NEON_16S_ITS_data
 # remove extra sites from legacy data.
 otu_ITS_legacy <- otu_ITS_legacy[which(substr(rownames(otu_ITS_legacy),1,4) %in% c("CPER","DSNY","HARV","OSBS","STER")),]
 otu_ITS_legacy <- otu_ITS_legacy[,which(colSums(otu_ITS_legacy)>0)]
+rownames(otu_ITS_legacy) <- gsub("-gen.fastq", "", rownames(otu_ITS_legacy))
 otu <- dada2::mergeSequenceTables(otu_ITS_recent, otu_ITS_legacy) # combine OTU tables
 
 # combine taxonomy tables and reformat
@@ -76,9 +81,35 @@ tax_table(ps) <- fg
 
 # get abundances for taxonomic and functional groups.
 abun <- get_tax_level_abun(ps, tax_rank_list = rank_names(ps)[c(2:6,8:13)])
-out <- c(ps_ITS, abun)
+out <- c(ps, abun)
 names(out) <- c("ps_ITS", names(abun))
 
 # save output!!
 saveRDS(ps, ps.output.path)
 saveRDS(out, abun.output.path)
+
+
+
+
+
+library(ggplot2)
+abun <- readRDS("/projectnb/talbot-lab-data/zrwerbin/NEON_16S_ITS_data_construction/data/output_files/ITS/ps_groupAbundances_ITS.rds")
+
+plot.list <- list()
+for (group in names(abun)[7:12]){
+  samp.df <- sample_data(abun$ps_ITS)
+  y <- abun[[group]]$rel.abundances[,group]
+  samp.df <- samp.df[samp.df$sampleID %in% rownames(abun[[group]]$rel.abundances),]
+  df <- cbind.data.frame(asDate = samp.df$asDate,
+                         siteID = samp.df$siteID,
+                         horizon = samp.df$horizon,
+                         y = y)
+  df <- df[df$asDate < "2017-01-01",]
+  plot.list[[group]] <- ggplot(df, aes(x = asDate, y = y)) + 
+    geom_point(aes(color = siteID)) +
+    geom_smooth(aes(color = siteID), span = .7) + ggtitle(group) + ylim(0, 1)
+}
+gridExtra::grid.arrange(plot.list[[1]], plot.list[[2]], plot.list[[3]], plot.list[[4]])
+gridExtra::grid.arrange(plot.list[[5]], plot.list[[6]])
+
+

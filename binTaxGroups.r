@@ -3,7 +3,9 @@ get_tax_level_abun <- function(ps, tax_rank_list = c("phylum","class","order","f
 require("phyloseq")
   require("speedyseq")
   require("data.table")
-  ps_orig <- prune_samples(rowSums(otu_table(ps)) > 1000, ps)
+  
+  if(taxa_are_rows(ps)){otu_table(ps) <- t(otu_table(ps))}
+  ps_orig <- prune_samples(rowSums(otu_table(ps)) > min_seq_depth, ps)
   out.list <- list()
 for (r in 1:length(tax_rank_list)) {
   ps <- ps_orig
@@ -22,7 +24,7 @@ form <- as.formula(paste0("sampleID ~ ", tax_rank))
   
 glom_wide <- reshape2::dcast(glom_melt, form, value.var = "Abundance", fun.aggregate = sum)
 out_abun <- transform(glom_wide, row.names=sampleID, sampleID=NULL)
-out_abun <- out_abun[sample_names(ps),]
+out_abun <- out_abun[sample_data(ps)$sampleID,]
 out_abun$other <- NULL
 out_abun$other <- seq_total - rowSums(out_abun)
 
